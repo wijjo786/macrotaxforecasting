@@ -1,0 +1,122 @@
+{
+  "performance": [
+    {
+      "tax_head": "dt",
+      "model": "ardl",
+      "h1_smape": 11.03,
+      "h3_smape": 34.45,
+      "rmse_pct": 10.95,
+      "n_test": 5,
+      "mae_pct": 11.03
+    },
+    {
+      "tax_head": "dt",
+      "model": "arimax",
+      "h1_smape": 11.11,
+      "h3_smape": 48.52,
+      "rmse_pct": 9.5,
+      "n_test": 5,
+      "mae_pct": 11.11
+    },
+    {
+      "tax_head": "dt",
+      "model": "enet",
+      "h1_smape": null,
+      "h3_smape": null,
+      "rmse_pct": null,
+      "n_test": 0,
+      "mae_pct": null
+    },
+    {
+      "tax_head": "gst",
+      "model": "ardl",
+      "h1_smape": 7.96,
+      "h3_smape": 11.21,
+      "rmse_pct": 13.08,
+      "n_test": 5,
+      "mae_pct": 7.96
+    },
+    {
+      "tax_head": "gst",
+      "model": "arimax",
+      "h1_smape": 4.3,
+      "h3_smape": 8.16,
+      "rmse_pct": 5.03,
+      "n_test": 5,
+      "mae_pct": 4.3
+    },
+    {
+      "tax_head": "gst",
+      "model": "enet",
+      "h1_smape": null,
+      "h3_smape": null,
+      "rmse_pct": null,
+      "n_test": 0,
+      "mae_pct": null
+    },
+    {
+      "tax_head": "fed",
+      "model": "ardl",
+      "h1_smape": 22.63,
+      "h3_smape": 47.25,
+      "rmse_pct": 25.98,
+      "n_test": 5,
+      "mae_pct": 22.63
+    },
+    {
+      "tax_head": "fed",
+      "model": "arimax",
+      "h1_smape": 11.08,
+      "h3_smape": 45.7,
+      "rmse_pct": 18.3,
+      "n_test": 5,
+      "mae_pct": 11.08
+    },
+    {
+      "tax_head": "fed",
+      "model": "enet",
+      "h1_smape": null,
+      "h3_smape": null,
+      "rmse_pct": null,
+      "n_test": 0,
+      "mae_pct": null
+    },
+    {
+      "tax_head": "customs",
+      "model": "ardl",
+      "h1_smape": 9.81,
+      "h3_smape": 27.57,
+      "rmse_pct": 13.21,
+      "n_test": 5,
+      "mae_pct": 9.81
+    },
+    {
+      "tax_head": "customs",
+      "model": "arimax",
+      "h1_smape": 8.65,
+      "h3_smape": 15.69,
+      "rmse_pct": 16.69,
+      "n_test": 5,
+      "mae_pct": 8.65
+    },
+    {
+      "tax_head": "customs",
+      "model": "enet",
+      "h1_smape": null,
+      "h3_smape": null,
+      "rmse_pct": null,
+      "n_test": 0,
+      "mae_pct": null
+    }
+  ],
+  "data_span": {
+    "start": "1995",
+    "end": "2026",
+    "n": 31
+  },
+  "backtest_config": {
+    "n_test": 5,
+    "method": "expanding-window",
+    "selection_metric": "h1_smape"
+  }
+}
