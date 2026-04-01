@@ -3413,7 +3413,7 @@ with tab3:
                             "Actual (PKR bn)": "{:,.2f}",
                             "Fitted (PKR bn)": "{:,.2f}",
                             "Error %"        : "{:+.2f}%",
-                        }).applymap(
+                        }).map(
                             lambda v: "color: #DC2626" if isinstance(v, str) and v.startswith("+") and float(v.replace("%","")) > 5
                             else ("color: #059669" if isinstance(v, str) and v.startswith("-") and abs(float(v.replace("%",""))) < 5 else ""),
                             subset=["Error %"]
