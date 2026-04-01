@@ -20,6 +20,7 @@ import base64
 import traceback
 from typing import Dict, List, Optional, Tuple
 
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -29,6 +30,7 @@ import statsmodels.api as sm
 from sklearn.linear_model import LinearRegression
 from statsmodels.stats.diagnostic import acorr_ljungbox, het_breuschpagan
 from statsmodels.stats.stattools import jarque_bera
+from io import StringIO
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -2046,7 +2048,8 @@ def mm_get_cached_forecast(
 ):
     """Run a single-head forecast using the multi-model bundle."""
     bundle_head = _bundle["models"][head]
-    exog_future = pd.read_json(exog_future_json).sort_index()
+
+    exog_future = pd.read_json(StringIO(exog_future_json)).sort_index()
     exog_future.index = pd.PeriodIndex(exog_future.index, freq="Y")
 
     y_name = bundle_head["spec"]["y"]
