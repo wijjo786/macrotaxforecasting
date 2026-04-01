@@ -8,5 +8,4 @@ data/
 !tax_prepared_data.xlsx
 !buoyancy_estimates.xlsx
 
-# Still ignore other xlsx
-*.xlsx
+
