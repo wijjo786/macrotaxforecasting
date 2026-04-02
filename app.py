@@ -2501,44 +2501,53 @@ else:
 buoy_data = load_buoyancy()
 
 # ============================================================================
-# 2026 ROW PERSISTENCE — per-user isolated, survives page refresh
-# Strategy: generate a UUID the first visit and store it in the URL as ?uid=...
-# The browser keeps the URL on refresh, so the same file is always found.
+# 2026 ROW PERSISTENCE — per-user isolated, survives refresh AND browser close
+# Strategy: store the UID in browser localStorage via a JS component.
+#   - JS reads localStorage on every load; if found, pushes ?uid= into the URL
+#   - Python reads ?uid= from st.query_params (set by JS or carried in URL)
+#   - Each user's data lives in user_sessions/user_<uid>.json on the server
 # ============================================================================
 
 _SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "user_sessions")
 os.makedirs(_SESSIONS_DIR, exist_ok=True)
 
-def _get_or_create_uid() -> str:
-    """
-    Return a stable user ID that persists across page refreshes.
-    On first visit: generate a UUID, write it to ?uid= in the URL and
-    store in session_state. On all subsequent visits (including F5):
-    read it back from st.query_params.
-    """
-    import uuid
+# Inject JS that reads localStorage['prfs_uid'], creates one if missing,
+# then sets ?uid= in the URL so Python can read it via st.query_params.
+# Height=0 makes it invisible. This runs on every page load including reopens.
+import streamlit.components.v1 as _components
+_components.html("""
+<script>
+(function() {
+    var key = 'prfs_uid';
+    var uid = localStorage.getItem(key);
+    if (!uid) {
+        uid = 'u' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem(key, uid);
+    }
+    // Push into URL query param so Python can read it via st.query_params
+    var url = new URL(window.location.href);
+    if (url.searchParams.get('uid') !== uid) {
+        url.searchParams.set('uid', uid);
+        window.history.replaceState(null, '', url.toString());
+        // Trigger a soft rerun so Streamlit picks up the new ?uid=
+        window.location.href = url.toString();
+    }
+})();
+</script>
+""", height=0)
 
-    # 1. Already in session_state (within the same Streamlit session)
+def _get_uid() -> str:
+    """Read the UID from query params (set by the JS above)."""
+    import uuid
     if "_prfs_uid" in st.session_state:
         return st.session_state["_prfs_uid"]
-
-    # 2. Carried in the URL query param (survives F5 refresh)
     params = st.query_params
-    if "uid" in params:
-        uid = str(params["uid"])
-        st.session_state["_prfs_uid"] = uid
-        return uid
-
-    # 3. First ever visit — generate, write to URL and session_state
-    uid = str(uuid.uuid4())
+    uid = str(params["uid"]) if "uid" in params else str(uuid.uuid4())
     st.session_state["_prfs_uid"] = uid
-    st.query_params["uid"] = uid
     return uid
 
 def _persist_file() -> str:
-    """Return the path to this user's personal override file."""
-    uid = _get_or_create_uid()
-    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in uid)
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in _get_uid())
     return os.path.join(_SESSIONS_DIR, f"user_{safe}.json")
 
 def _save_2026_overrides() -> None:
