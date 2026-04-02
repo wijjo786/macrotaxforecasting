@@ -20,7 +20,6 @@ import base64
 import traceback
 from typing import Dict, List, Optional, Tuple
 
-
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -30,7 +29,6 @@ import statsmodels.api as sm
 from sklearn.linear_model import LinearRegression
 from statsmodels.stats.diagnostic import acorr_ljungbox, het_breuschpagan
 from statsmodels.stats.stattools import jarque_bera
-from io import StringIO
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -461,7 +459,6 @@ section[data-testid="stSidebar"] .stButton > button:hover {
 
 .kpi-card {
     flex: 1;
-    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
     border-radius: 16px;
     padding: 1.4rem 1.5rem 1.2rem;
     min-height: 178px;
@@ -469,11 +466,21 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     flex-direction: column;
     justify-content: space-between;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
-    border: 1px solid rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.07);
     position: relative;
     overflow: hidden;
     transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
+
+.kpi-card.kpi-blue   { background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-color: #BFDBFE; }
+.kpi-card.kpi-purple { background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%); border-color: #DDD6FE; }
+.kpi-card.kpi-teal   { background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: #A7F3D0; }
+.kpi-card.kpi-amber  { background: linear-gradient(135deg, #FEF9C3 0%, #FDE68A 100%); border-color: #FCD34D; }
+
+.kpi-card.kpi-blue:hover   { background: linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%); border-color: #93C5FD; }
+.kpi-card.kpi-purple:hover { background: linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%); border-color: #C4B5FD; }
+.kpi-card.kpi-teal:hover   { background: linear-gradient(135deg, #FFFFFF 0%, #ECFDF5 100%); border-color: #6EE7B7; }
+.kpi-card.kpi-amber:hover  { background: linear-gradient(135deg, #FFFFFF 0%, #FEF9C3 100%); border-color: #FCD34D; }
 
 .kpi-card:hover {
     transform: translateY(-3px);
@@ -696,89 +703,101 @@ section[data-testid="stSidebar"] div.element-container:nth-child(3) + div.elemen
 }
 
 /* Table Styling */
+/* ── DataFrame / Table — Professional Redesign ──────────────────────────── */
 div[data-testid="stDataFrame"],
 div.stDataFrame {
     background: white;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
+    border-radius: 14px;
     overflow: hidden;
-    margin: 1.75rem 0;
-    border: 1px solid var(--border-light);
-    transition: box-shadow 0.3s ease;
+    margin: 1.25rem 0;
+    border: 1px solid #E5E9EF;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.05);
+    transition: box-shadow 0.25s ease;
 }
 
 div[data-testid="stDataFrame"]:hover,
 div.stDataFrame:hover {
-    box-shadow: var(--shadow-lg);
-    border-color: var(--primary-200);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.07), 0 16px 40px rgba(0,0,0,0.08);
+    border-color: #C7D7F0;
 }
 
 .dataframe {
     width: 100%;
-    border-collapse: separate;
+    border-collapse: collapse;
     border-spacing: 0;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     background: white;
 }
 
+/* Header */
 .dataframe thead {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-bottom: 2px solid var(--border-medium);
+    background: linear-gradient(180deg, #1E3A5F 0%, #1a3354 100%);
 }
 
 .dataframe thead tr th {
     background: transparent !important;
-    color: var(--text-primary) !important;
-    font-weight: 800 !important;
-    font-size: 0.875rem !important;
+    color: #E8F0FE !important;
+    font-weight: 700 !important;
+    font-size: 0.72rem !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.12em !important;
-    padding: 1.125rem 1.25rem !important;
+    letter-spacing: 0.11em !important;
+    padding: 0.9rem 1.1rem !important;
     text-align: left !important;
     border: none !important;
-    border-right: 1px solid var(--border-light) !important;
+    border-right: 1px solid rgba(255,255,255,0.08) !important;
     font-family: 'Space Grotesk', sans-serif !important;
     position: sticky !important;
     top: 0 !important;
     z-index: 10 !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    white-space: nowrap;
 }
 
+.dataframe thead tr th:last-child {
+    border-right: none !important;
+}
+
+/* Body rows */
 .dataframe tbody tr:nth-child(even) {
-    background-color: #fafbfc !important;
+    background-color: #F7F9FC !important;
 }
 
 .dataframe tbody tr:nth-child(odd) {
-    background-color: white !important;
+    background-color: #FFFFFF !important;
 }
 
 .dataframe tbody tr:hover {
-    background: linear-gradient(135deg, #f0f5ff 0%, #e6eeff 100%) !important;
-    transform: translateX(3px);
-    box-shadow: inset 4px 0 0 var(--primary-400);
+    background: linear-gradient(90deg, #EEF4FF 0%, #F5F8FF 100%) !important;
+    box-shadow: inset 3px 0 0 #2563EB;
 }
 
+/* Cells */
 .dataframe tbody td {
-    padding: 0.9375rem 1.25rem !important;
+    padding: 0.75rem 1.1rem !important;
     font-weight: 500 !important;
-    color: var(--text-primary) !important;
+    color: #1F2937 !important;
     border: none !important;
-    border-right: 1px solid var(--border-light) !important;
+    border-bottom: 1px solid #F0F3F7 !important;
+    border-right: 1px solid #F0F3F7 !important;
     text-align: left !important;
     font-family: 'Inter', sans-serif !important;
     line-height: 1.5;
+    transition: background 0.15s ease;
 }
 
 .dataframe tbody td:last-child {
     border-right: none !important;
 }
 
+/* First column — row label */
 .dataframe tbody td:first-child {
-    font-weight: 600 !important;
-    color: var(--text-secondary) !important;
+    font-weight: 700 !important;
+    color: #374151 !important;
     font-family: 'Space Grotesk', sans-serif !important;
+    background: inherit;
+    border-left: none !important;
 }
 
+/* Numeric columns — right-align with monospace */
 .dataframe tbody td:nth-child(2),
 .dataframe tbody td:nth-child(3),
 .dataframe tbody td:nth-child(4),
@@ -791,6 +810,13 @@ div.stDataFrame:hover {
     text-align: right !important;
     font-family: 'Space Grotesk', monospace !important;
     font-weight: 600 !important;
+    color: #111827 !important;
+    letter-spacing: -0.01em;
+}
+
+/* Last body row — no bottom border */
+.dataframe tbody tr:last-child td {
+    border-bottom: none !important;
 }
 
 /* Insight Panel */
@@ -2048,8 +2074,7 @@ def mm_get_cached_forecast(
 ):
     """Run a single-head forecast using the multi-model bundle."""
     bundle_head = _bundle["models"][head]
-
-    exog_future = pd.read_json(StringIO(exog_future_json)).sort_index()
+    exog_future = pd.read_json(exog_future_json).sort_index()
     exog_future.index = pd.PeriodIndex(exog_future.index, freq="Y")
 
     y_name = bundle_head["spec"]["y"]
@@ -2391,10 +2416,14 @@ def render_sidebar(
     )
 
     if input_mode == "Manual Sliders":
-        gdp_growth = sb.slider("Nominal GDP Growth Target (%)", -2.0, 20.0, 10.8) / 100
-        inflation = sb.slider("Inflation Target (%)", 0.0, 40.0, 6.1)
-        exrate_growth = sb.slider("Exchange Rate Depreciation (%)", -5.0, 30.0, 1.0) / 100
-        policy_rate = sb.slider("Policy Rate Target (%)", 5.0, 30.0, 11.2)
+
+        gdp_pct     = sb.number_input("Nominal GDP Growth Target (%)", -2.0,  20.0, 10.8, 0.1)
+        inflation   = sb.number_input("Inflation Target (%)",            0.0,  40.0,  6.1, 0.1)
+        exrate_pct  = sb.number_input("FX Depreciation (%)",            -5.0,  30.0,  1.0, 0.1)
+        policy_rate = sb.number_input("Policy Rate Target (%)",          5.0,  30.0, 11.2, 0.1)
+
+        gdp_growth    = gdp_pct    / 100
+        exrate_growth = exrate_pct / 100
 
         targets = dict(
             gdp_growth=gdp_growth,
