@@ -2501,21 +2501,24 @@ else:
 buoy_data = load_buoyancy()
 
 # ============================================================================
-# 2026 ROW PERSISTENCE — username-based, fully persistent
-# User types a username once in the sidebar. That name becomes their key.
-# Data is saved to user_sessions/<username>.json and reloaded every time
-# they open the app and enter the same username. Simple and reliable.
+# 2026 ROW PERSISTENCE — cookie-based UUID, survives close/reopen
+# Flow:
+#   JS (runs in browser every load):
+#     - reads document.cookie for 'prfs_uid'
+#     - if missing: generates UUID, sets 1-year cookie, sets ?uid= in URL, reloads
+#     - if found:   pushes ?uid= into URL via replaceState (no reload needed)
+#   Python: reads st.query_params['uid'] → loads user_sessions/<uid>.json
 # ============================================================================
 
 _SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "user_sessions")
 os.makedirs(_SESSIONS_DIR, exist_ok=True)
 
-def _persist_file(username: str) -> str:
-    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in username.strip().lower())
+def _persist_file(uid: str) -> str:
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in uid)
     return os.path.join(_SESSIONS_DIR, f"user_{safe}.json")
 
-def _save_2026_overrides(username: str) -> None:
-    if not username.strip():
+def _save_2026_overrides(uid: str) -> None:
+    if not uid:
         return
     try:
         payload = {}
@@ -2523,16 +2526,16 @@ def _save_2026_overrides(username: str) -> None:
             payload["revised_2026_df"] = st.session_state["revised_2026_df"].to_dict(orient="records")
         if "editor_last_year" in st.session_state:
             payload["editor_last_year"] = st.session_state["editor_last_year"].to_dict(orient="records")
-        with open(_persist_file(username), "w", encoding="utf-8") as _f:
+        with open(_persist_file(uid), "w", encoding="utf-8") as _f:
             json.dump(payload, _f)
     except Exception:
         pass
 
-def _load_2026_overrides(username: str) -> dict:
-    if not username.strip():
+def _load_2026_overrides(uid: str) -> dict:
+    if not uid:
         return {}
     try:
-        path = _persist_file(username)
+        path = _persist_file(uid)
         if not os.path.isfile(path):
             return {}
         with open(path, "r", encoding="utf-8") as _f:
@@ -2545,30 +2548,52 @@ def _load_2026_overrides(username: str) -> dict:
     except Exception:
         return {}
 
-# ── Username widget — shown at the very top of the sidebar ───────────────────
-# We render it here (before the rest of the sidebar) so the username is
-# available for all seeding logic below.
-_username_input = st.sidebar.text_input(
-    "👤 Your Username",
-    value=st.session_state.get("_prfs_username", ""),
-    placeholder="Enter a username to save your data…",
-    key="_prfs_username_widget",
-    help="Enter any username. Your 2026 row edits will be saved and reloaded whenever you use the same name.",
-)
-_username = _username_input.strip()
+# ── Step 1: inject the cookie JS at the very top of the page ─────────────────
+# This MUST run before we read st.query_params so the UID is in the URL.
+# On first visit: JS generates UUID → sets cookie → reloads page with ?uid=
+# On return visits: JS reads cookie → pushes ?uid= via replaceState (no reload)
+st.markdown("""
+<script>
+(function() {
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : null;
+    }
+    var uid = getCookie('prfs_uid');
+    if (!uid) {
+        // First visit — generate UUID, set 1-year cookie, reload with ?uid=
+        uid = 'u' + ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
+            return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+        });
+        var expires = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
+        document.cookie = 'prfs_uid=' + uid + '; expires=' + expires + '; path=/; SameSite=Lax';
+        // Hard reload with ?uid= so Python picks it up
+        var url = new URL(window.location.href);
+        url.searchParams.set('uid', uid);
+        window.location.href = url.toString();
+    } else {
+        // Return visit — silently push ?uid= into URL (no reload)
+        var url = new URL(window.location.href);
+        if (url.searchParams.get('uid') !== uid) {
+            url.searchParams.set('uid', uid);
+            window.history.replaceState(null, '', url.toString());
+        }
+    }
+})();
+</script>
+""", unsafe_allow_html=True)
 
-# Detect username change → reload persisted data for the new user
-_prev_username = st.session_state.get("_prfs_username", "")
-if _username != _prev_username:
-    st.session_state["_prfs_username"] = _username
-    # Clear current data so it reloads from the new user's file
-    for _k in ("revised_2026_df", "editor_last_year", "user_df"):
-        st.session_state.pop(_k, None)
-    mm_get_cached_forecast.clear()
-    st.rerun()
+# ── Step 2: Python reads the UID from query params ────────────────────────────
+_uid = str(st.query_params.get("uid", "")).strip()
 
-st.session_state["_prfs_username"] = _username
-_persisted = _load_2026_overrides(_username)
+# Cache UID in session_state so it's stable within a session even if
+# query_params is briefly empty during a rerun
+if _uid:
+    st.session_state["_prfs_uid"] = _uid
+else:
+    _uid = st.session_state.get("_prfs_uid", "")
+
+_persisted = _load_2026_overrides(_uid)
 
 # ── Seed 'editor_last_year' at startup (Now Budget Estimates section)
 # Source: persisted overrides > Actual 2026 row from Excel (Original Budget)
@@ -4048,19 +4073,19 @@ with tab7:
 
     # 2. Render Unified Data Preview (History + 2026 Row)
     # ── Persistence controls ──────────────────────────────────────────────────
-    _persist_exists = _username and os.path.isfile(_persist_file(_username))
+    _persist_exists = bool(_uid) and os.path.isfile(_persist_file(_uid))
     _p_col1, _p_col2 = st.columns([5, 1])
     with _p_col1:
-        if not _username:
-            st.warning("⚠️ Enter a username in the sidebar to save your 2026 edits across sessions.")
+        if not _uid:
+            st.info("ℹ️ Identifying your browser… edit the 2026 row below to save your changes.")
         elif _persist_exists:
-            st.success(f"✅ Saved data loaded for **{_username}**. Changes auto-save on edit.", icon=None)
+            st.success("✅ Your saved 2026 edits have been restored. Changes auto-save on edit.", icon=None)
         else:
-            st.info(f"ℹ️ Logged in as **{_username}** — edit the 2026 row below to save.")
+            st.info("ℹ️ Edit the 2026 row below — your changes will be saved to this browser.")
     with _p_col2:
         if _persist_exists and st.button("🔄 Reset to Defaults", help="Clear saved 2026 overrides and reload from source data"):
             try:
-                os.remove(_persist_file(_username))
+                os.remove(_persist_file(_uid))
             except Exception:
                 pass
             for _k in ("revised_2026_df", "editor_last_year", "user_df"):
@@ -4100,7 +4125,7 @@ with tab7:
         if not _edited_bud_row.equals(_old_bud_row):
             # Budget changed -> Save and Retrain
             st.session_state["revised_2026_df"] = _edited_bud_row
-            _save_2026_overrides(_username)
+            _save_2026_overrides(_uid)
             # Build models dataset: History + NEW Budget 2026
             _combined_work = pd.concat([_hist_data, _edited_bud_row], axis=0, ignore_index=True)
             if "year_end" in _combined_work.columns:
@@ -4151,7 +4176,7 @@ with tab7:
 
     if not edited_re.equals(st.session_state["editor_last_year"]):
         st.session_state["editor_last_year"] = edited_re.copy()
-        _save_2026_overrides(_username)
+        _save_2026_overrides(_uid)
         st.rerun()
 
     st.markdown("#### Generated Future Exogenous Variables")
