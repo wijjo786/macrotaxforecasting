@@ -2501,30 +2501,59 @@ else:
 buoy_data = load_buoyancy()
 
 # ============================================================================
-# 2026 ROW PERSISTENCE — save/load from disk so edits survive restarts
+# 2026 ROW PERSISTENCE — per-session isolated save/load
+# Each browser session gets its own file so users never overwrite each other.
 # ============================================================================
 
-_PERSIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prfs_2026_overrides.json")
+_SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "user_sessions")
+os.makedirs(_SESSIONS_DIR, exist_ok=True)
+
+def _session_id() -> str:
+    """
+    Return a stable ID for this browser session.
+    We derive it from Streamlit's internal session id (available via the
+    runtime context). Falls back to a UUID stored in session_state so the
+    same browser tab always maps to the same file within one run.
+    """
+    if "_prfs_session_id" not in st.session_state:
+        try:
+            from streamlit.runtime import get_instance
+            from streamlit.runtime.scriptrunner import get_script_run_ctx
+            ctx = get_script_run_ctx()
+            sid = ctx.session_id if ctx else None
+        except Exception:
+            sid = None
+        if not sid:
+            import uuid
+            sid = str(uuid.uuid4())
+        st.session_state["_prfs_session_id"] = sid
+    return st.session_state["_prfs_session_id"]
+
+def _persist_file() -> str:
+    """Return the path to this session's personal override file."""
+    safe_id = "".join(c if c.isalnum() or c in "-_" else "_" for c in _session_id())
+    return os.path.join(_SESSIONS_DIR, f"session_{safe_id}.json")
 
 def _save_2026_overrides() -> None:
-    """Write both 2026 editable rows to disk as JSON."""
+    """Write both 2026 editable rows to this session's file only."""
     try:
         payload = {}
         if "revised_2026_df" in st.session_state:
             payload["revised_2026_df"] = st.session_state["revised_2026_df"].to_dict(orient="records")
         if "editor_last_year" in st.session_state:
             payload["editor_last_year"] = st.session_state["editor_last_year"].to_dict(orient="records")
-        with open(_PERSIST_FILE, "w", encoding="utf-8") as _f:
+        with open(_persist_file(), "w", encoding="utf-8") as _f:
             json.dump(payload, _f)
     except Exception:
         pass  # never crash the app on a save failure
 
 def _load_2026_overrides() -> dict:
-    """Return persisted rows as {key: DataFrame} or {} if file absent/corrupt."""
+    """Return this session's persisted rows, or {} if none saved yet."""
     try:
-        if not os.path.isfile(_PERSIST_FILE):
+        path = _persist_file()
+        if not os.path.isfile(path):
             return {}
-        with open(_PERSIST_FILE, "r", encoding="utf-8") as _f:
+        with open(path, "r", encoding="utf-8") as _f:
             raw = json.load(_f)
         result = {}
         for key in ("revised_2026_df", "editor_last_year"):
@@ -4014,7 +4043,7 @@ with tab7:
 
     # 2. Render Unified Data Preview (History + 2026 Row)
     # ── Persistence controls ──────────────────────────────────────────────────
-    _persist_exists = os.path.isfile(_PERSIST_FILE)
+    _persist_exists = os.path.isfile(_persist_file())
     _p_col1, _p_col2 = st.columns([5, 1])
     with _p_col1:
         if _persist_exists:
@@ -4024,7 +4053,7 @@ with tab7:
     with _p_col2:
         if _persist_exists and st.button("🔄 Reset to Defaults", help="Clear saved 2026 overrides and reload from source data"):
             try:
-                os.remove(_PERSIST_FILE)
+                os.remove(_persist_file())
             except Exception:
                 pass
             for _k in ("revised_2026_df", "editor_last_year", "user_df"):
