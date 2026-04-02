@@ -2501,41 +2501,48 @@ else:
 buoy_data = load_buoyancy()
 
 # ============================================================================
-# 2026 ROW PERSISTENCE — per-session isolated save/load
-# Each browser session gets its own file so users never overwrite each other.
+# 2026 ROW PERSISTENCE — per-user isolated, survives page refresh
+# Strategy: generate a UUID the first visit and store it in the URL as ?uid=...
+# The browser keeps the URL on refresh, so the same file is always found.
 # ============================================================================
 
 _SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "user_sessions")
 os.makedirs(_SESSIONS_DIR, exist_ok=True)
 
-def _session_id() -> str:
+def _get_or_create_uid() -> str:
     """
-    Return a stable ID for this browser session.
-    We derive it from Streamlit's internal session id (available via the
-    runtime context). Falls back to a UUID stored in session_state so the
-    same browser tab always maps to the same file within one run.
+    Return a stable user ID that persists across page refreshes.
+    On first visit: generate a UUID, write it to ?uid= in the URL and
+    store in session_state. On all subsequent visits (including F5):
+    read it back from st.query_params.
     """
-    if "_prfs_session_id" not in st.session_state:
-        try:
-            from streamlit.runtime import get_instance
-            from streamlit.runtime.scriptrunner import get_script_run_ctx
-            ctx = get_script_run_ctx()
-            sid = ctx.session_id if ctx else None
-        except Exception:
-            sid = None
-        if not sid:
-            import uuid
-            sid = str(uuid.uuid4())
-        st.session_state["_prfs_session_id"] = sid
-    return st.session_state["_prfs_session_id"]
+    import uuid
+
+    # 1. Already in session_state (within the same Streamlit session)
+    if "_prfs_uid" in st.session_state:
+        return st.session_state["_prfs_uid"]
+
+    # 2. Carried in the URL query param (survives F5 refresh)
+    params = st.query_params
+    if "uid" in params:
+        uid = str(params["uid"])
+        st.session_state["_prfs_uid"] = uid
+        return uid
+
+    # 3. First ever visit — generate, write to URL and session_state
+    uid = str(uuid.uuid4())
+    st.session_state["_prfs_uid"] = uid
+    st.query_params["uid"] = uid
+    return uid
 
 def _persist_file() -> str:
-    """Return the path to this session's personal override file."""
-    safe_id = "".join(c if c.isalnum() or c in "-_" else "_" for c in _session_id())
-    return os.path.join(_SESSIONS_DIR, f"session_{safe_id}.json")
+    """Return the path to this user's personal override file."""
+    uid = _get_or_create_uid()
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in uid)
+    return os.path.join(_SESSIONS_DIR, f"user_{safe}.json")
 
 def _save_2026_overrides() -> None:
-    """Write both 2026 editable rows to this session's file only."""
+    """Write both 2026 editable rows to this user's file only."""
     try:
         payload = {}
         if "revised_2026_df" in st.session_state:
@@ -2545,10 +2552,10 @@ def _save_2026_overrides() -> None:
         with open(_persist_file(), "w", encoding="utf-8") as _f:
             json.dump(payload, _f)
     except Exception:
-        pass  # never crash the app on a save failure
+        pass
 
 def _load_2026_overrides() -> dict:
-    """Return this session's persisted rows, or {} if none saved yet."""
+    """Return this user's persisted rows, or {} if none saved yet."""
     try:
         path = _persist_file()
         if not os.path.isfile(path):
