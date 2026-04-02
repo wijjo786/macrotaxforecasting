@@ -12,6 +12,7 @@ Run:
 from __future__ import annotations
 
 import sys
+import io
 import os
 import json
 import pickle
@@ -454,11 +455,13 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     margin-top: 0rem;
 }
 
-/* ── KPI Cards — Redesigned ─────────────────────────────────────────────── */
+/* ── KPI Cards — Unified ─────────────────────────────────────────────────── */
 .kpi-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
 
 .kpi-card {
     flex: 1;
+    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    border: 1px solid #BFDBFE;
     border-radius: 16px;
     padding: 1.4rem 1.5rem 1.2rem;
     min-height: 178px;
@@ -466,54 +469,39 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     flex-direction: column;
     justify-content: space-between;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
-    border: 1px solid rgba(0,0,0,0.07);
     position: relative;
     overflow: hidden;
     transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
-.kpi-card.kpi-blue   { background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border-color: #BFDBFE; }
-.kpi-card.kpi-purple { background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%); border-color: #DDD6FE; }
-.kpi-card.kpi-teal   { background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: #A7F3D0; }
-.kpi-card.kpi-amber  { background: linear-gradient(135deg, #FEF9C3 0%, #FDE68A 100%); border-color: #FCD34D; }
-
-.kpi-card.kpi-blue:hover   { background: linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%); border-color: #93C5FD; }
-.kpi-card.kpi-purple:hover { background: linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%); border-color: #C4B5FD; }
-.kpi-card.kpi-teal:hover   { background: linear-gradient(135deg, #FFFFFF 0%, #ECFDF5 100%); border-color: #6EE7B7; }
-.kpi-card.kpi-amber:hover  { background: linear-gradient(135deg, #FFFFFF 0%, #FEF9C3 100%); border-color: #FCD34D; }
-
 .kpi-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.07), 0 12px 32px rgba(0,0,0,0.10);
+    background: linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%);
+    border-color: #93C5FD;
 }
 
-/* Coloured left accent bar */
+/* Left accent bar */
 .kpi-card::after {
     content: '';
     position: absolute;
     top: 0; left: 0; bottom: 0;
     width: 4px;
     border-radius: 16px 0 0 16px;
+    background: linear-gradient(180deg, #2563EB, #60A5FA);
 }
-.kpi-card.kpi-blue::after   { background: linear-gradient(180deg, #2563EB, #60A5FA); }
-.kpi-card.kpi-purple::after { background: linear-gradient(180deg, #7C3AED, #A78BFA); }
-.kpi-card.kpi-teal::after   { background: linear-gradient(180deg, #0D9488, #2DD4BF); }
-.kpi-card.kpi-amber::after  { background: linear-gradient(180deg, #D97706, #FCD34D); }
 
-/* Subtle watermark circle */
+/* Watermark circle */
 .kpi-card::before {
     content: '';
     position: absolute;
     top: -28px; right: -28px;
     width: 110px; height: 110px;
     border-radius: 50%;
-    opacity: 0.055;
+    background: #2563EB;
+    opacity: 0.05;
     pointer-events: none;
 }
-.kpi-card.kpi-blue::before   { background: #2563EB; }
-.kpi-card.kpi-purple::before { background: #7C3AED; }
-.kpi-card.kpi-teal::before   { background: #0D9488; }
-.kpi-card.kpi-amber::before  { background: #D97706; }
 
 .kpi-top {
     display: flex;
@@ -530,11 +518,8 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     border-radius: 10px;
     font-size: 1.1rem;
     flex-shrink: 0;
+    background: #DBEAFE;
 }
-.kpi-blue   .kpi-icon-pill { background: #EFF6FF; }
-.kpi-purple .kpi-icon-pill { background: #F5F3FF; }
-.kpi-teal   .kpi-icon-pill { background: #F0FDFA; }
-.kpi-amber  .kpi-icon-pill { background: #FFFBEB; }
 
 .kpi-badge {
     font-size: 0.68rem;
@@ -543,11 +528,9 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     text-transform: uppercase;
     padding: 0.22rem 0.55rem;
     border-radius: 99px;
+    background: #DBEAFE;
+    color: #1D4ED8;
 }
-.kpi-blue   .kpi-badge { background: #EFF6FF; color: #1D4ED8; }
-.kpi-purple .kpi-badge { background: #F5F3FF; color: #6D28D9; }
-.kpi-teal   .kpi-badge { background: #F0FDFA; color: #0F766E; }
-.kpi-amber  .kpi-badge { background: #FFFBEB; color: #B45309; }
 
 .kpi-label {
     font-size: 0.78rem;
@@ -555,11 +538,8 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     margin-bottom: 0.3rem;
+    color: #2563EB;
 }
-.kpi-blue   .kpi-label { color: #3B82F6; }
-.kpi-purple .kpi-label { color: #8B5CF6; }
-.kpi-teal   .kpi-label { color: #14B8A6; }
-.kpi-amber  .kpi-label { color: #F59E0B; }
 
 .kpi-value {
     font-size: 1.95rem;
@@ -588,13 +568,14 @@ section[data-testid="stSidebar"] .stButton > button:hover {
 }
 .kpi-chip.up   { background: #ECFDF5; color: #065F46; }
 .kpi-chip.down { background: #FEF2F2; color: #991B1B; }
-.kpi-chip.flat { background: #F0F9FF; color: #0369A1; }
+.kpi-chip.flat { background: #DBEAFE; color: #1D4ED8; }
 
 .kpi-divider {
     height: 1px;
-    background: rgba(0,0,0,0.06);
+    background: rgba(37, 99, 235, 0.12);
     margin: 0.55rem 0 0.4rem;
 }
+
 
 /* Content Sections */
 .content-section {
@@ -2074,7 +2055,7 @@ def mm_get_cached_forecast(
 ):
     """Run a single-head forecast using the multi-model bundle."""
     bundle_head = _bundle["models"][head]
-    exog_future = pd.read_json(exog_future_json).sort_index()
+    exog_future = pd.read_json(io.StringIO(exog_future_json)).sort_index()
     exog_future.index = pd.PeriodIndex(exog_future.index, freq="Y")
 
     y_name = bundle_head["spec"]["y"]
@@ -2798,7 +2779,7 @@ with col1:
     chip_b = _chip(growth_vs_budget,  "vs Budget")
     chip_r = _chip(growth_vs_revised, "vs Revised")
     st.markdown(f"""
-    <div class="kpi-card kpi-blue">
+    <div class="kpi-card">
         <div>
             <div class="kpi-top">
                 <div class="kpi-icon-pill">💰</div>
@@ -2818,7 +2799,7 @@ with col1:
 with col2:
     chip_be = _chip_flat("Current FY")
     st.markdown(f"""
-    <div class="kpi-card kpi-purple">
+    <div class="kpi-card">
         <div>
             <div class="kpi-top">
                 <div class="kpi-icon-pill">🏛️</div>
@@ -2837,7 +2818,7 @@ with col2:
 with col3:
     chip_re = _chip_flat("Current FY")
     st.markdown(f"""
-    <div class="kpi-card kpi-teal">
+    <div class="kpi-card">
         <div>
             <div class="kpi-top">
                 <div class="kpi-icon-pill">📋</div>
@@ -2856,7 +2837,7 @@ with col3:
 with col4:
     chip_cagr = _chip(total_cagr_final, "vs Revised")
     st.markdown(f"""
-    <div class="kpi-card kpi-amber">
+    <div class="kpi-card">
         <div>
             <div class="kpi-top">
                 <div class="kpi-icon-pill">📈</div>
